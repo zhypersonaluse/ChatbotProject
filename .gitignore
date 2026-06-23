@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#DB
+C1_DB/
+C2_DB/
+
+#data
+data/
