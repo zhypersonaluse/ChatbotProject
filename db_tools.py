@@ -6,7 +6,7 @@ from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 
 
-def intial_embedding(model_name: str):
+def intial_embedding():
     """
     Intialize an embedding function.
     Args:
@@ -15,11 +15,11 @@ def intial_embedding(model_name: str):
         embedding: Embedding model
     """
     print("Intialize Embedding Model")
-    embedding = OpenAIEmbeddings(model=model_name)
+    embedding = OpenAIEmbeddings()
     return embedding
 
 
-def initial_db(collection_name: str, embedding, db_path: str):
+def initial_db(docs, collection_name: str, embedding, db_path: str):
     """
     Intialize an vector database.
     Args:
@@ -30,9 +30,18 @@ def initial_db(collection_name: str, embedding, db_path: str):
         db: vector_database
     """
     print(f"Initialize vector database for {collection_name}")
-    db = Chroma(
+    db = Chroma.from_documents(
+        documents= docs,
         collection_name=collection_name,
-        embedding_function=embedding,
+        embedding=embedding,
         persist_directory=db_path,
     )
-    return db
+
+
+def get_retriever(collection_name: str, embedding, db_path: str):
+    retriever = Chroma(
+        collection_name = collection_name,
+        persist_directory= db_path,
+        embedding_function= embedding
+    ).as_retriever()
+    return retriever
