@@ -1,27 +1,50 @@
-from dotenv import load_dotenv
+# Frontend User Interface File
 
-load_dotenv()
-
-from graph import run_agent
 import streamlit as st
+import requests
 
-# with st.sidebar:
-#     openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-#     "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-#     "[View the source code](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)"
-#     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+st.title("💬 LLM Chatbot")
 
-st.title("💬 Chatbot")
-st.caption("🚀 A Streamlit chatbot powered by OpenAI")
-if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
+# Initialize chat history in session state if it doesn't exist yet
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
+# Text input field to enter a message
+user_input = st.text_input("You:", key="input")
 
-if prompt := st.chat_input():
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
-    msg = run_agent(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": msg})
-    st.chat_message("assistant").write(msg)
+# Submitting a message
+if user_input:
+    # Add user's message to chat history
+    st.session_state.chat_history.append(("You", user_input))
+    
+    with st.spinner("Thinking..."):  # loading spinner
+        try:
+            print("here")
+            print("User Input", user_input)
+            # Send POST request to backend API with the user message
+            res = requests.post("http://localhost:8000/chat", json={"message": user_input})
+            
+
+            if res.status_code == 200:
+                data = res.json()
+
+                # Check if the expected keys exist in the response
+                if "response" in data:
+                    st.session_state.chat_history.append(("Bot", data["response"]))
+                    #st.markdown(f"🕒 Time: {data.get('execution_time', 'N/A')}s | 🔢 Tokens: {data.get('tokens', 'N/A')}")
+                else:
+                    # If 'response' is missing, show the error key (if present)
+                    error_msg = data.get("error", "Unexpected response from server.")
+                    st.session_state.chat_history.append(("Bot", f"Error: {error_msg}"))
+
+            else:
+                # Non-200 HTTP response
+                st.session_state.chat_history.append(("Bot", f"Server error {res.status_code}"))
+
+        except Exception as e:
+            # Catch connection errors or other exceptions
+            st.session_state.chat_history.append(("Bot", f"Exception: {str(e)}"))
+
+# Display the conversation history in order
+for speaker, msg in st.session_state.chat_history:
+    st.markdown(f"**{speaker}**: {msg}")
