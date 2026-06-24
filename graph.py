@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langgraph.graph import END, StateGraph
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from db_tools import get_retriever
 from state import GraphState
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -17,15 +17,21 @@ C2_DB_PATH = "./C2_DB"
 def retrieval_C1(questions: str):
     """Retrieve the documentation from company C1"""
     retriever_C1 = get_retriever(collection_name="Company-One", embedding=embedding, db_path=C1_DB_PATH)
-    content = retriever_C1.invoke(questions)
-    return content
+    contents = retriever_C1.invoke(questions)
+    output = []
+    for cont in contents:
+        output.append(cont.page_content)
+    return output
 
 @tool
 def retrieval_C2(questions: str):
     """Retrieve the documentation from company C2"""
     retriever_C2 = get_retriever(collection_name="Company-Two", embedding=embedding, db_path=C2_DB_PATH)
-    content = retriever_C2.invoke(questions)
-    return content   
+    contents = retriever_C2.invoke(questions)
+    output = []
+    for cont in contents:
+        output.append(cont.page_content)
+    return output
 
 
 def run_agent(question: str):
@@ -59,15 +65,26 @@ def run_agent(question: str):
         human_message
     ]
 
-    for iteration in range(1, 5):
-        print(f"\n---Iteration {iteration} ---")
+    ai_message = llm_with_tools.invoke(messages)
 
-        ai_message = llm_with_tools.invoke(messages)
+    messages.append(ai_message)
 
-        tool_calls = ai_message.tool_calls
+    tool_calls = ai_message.tool_calls
 
-        print("tttttttttttttttttttt")
+    for tool in tool_calls:
+        tool_name = tool.get("name")
+        tool_args = tool.get("args", {})
+        tool_call_id = tool.get("id")
+        output = tools_dict.get(tool_name).invoke(tool_args)
+        tool_message = ToolMessage(content = " ".join(output), tool_call_id=tool_call_id)
+        messages.append(tool_message)
+        
 
+    final_output = llm_with_tools.invoke(messages)
+    
+    print(f"Final Answer is:\n {final_output.content}")
+
+    return final_output.content
 # workflow = StateGraph(GraphState)
 
 # workflow.add_node("retrieve C1", retrieval_C1)
@@ -82,4 +99,4 @@ def run_agent(question: str):
 
 print("test run")
 print()
-result = run_agent("What is the definition of adverse action in C2 and C1?")
+run_agent("What is the definition of adverse action in C2 and C1?")
