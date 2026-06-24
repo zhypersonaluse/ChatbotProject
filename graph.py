@@ -5,7 +5,6 @@ load_dotenv()
 from langgraph.graph import END, StateGraph
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from db_tools import get_retriever
-from state import GraphState
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.tools import tool
 
@@ -82,7 +81,7 @@ def run_agent(question: str):
 
     final_output = llm_with_tools.invoke(messages)
     
-    print(f"Final Answer is:\n {final_output.content}")
+    #print(f"Final Answer is:\n {final_output.content}")
 
     return final_output.content
 # workflow = StateGraph(GraphState)
@@ -97,6 +96,6 @@ def run_agent(question: str):
 
 
 
-print("test run")
-print()
-run_agent("What is the definition of adverse action in C2 and C1?")
+# print("test run")
+# print()
+# run_agent("What is the definition of adverse action in C2 and C1?")
